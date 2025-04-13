@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  web:
+    build: ./backend
+    container_name: php-backend
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_NAME=fitnation
+      - DB_USER=fitnation_user
+      - DB_PASS=securepassword
+    volumes:
+      - ./backend/src:/var/www/html           # Mount local PHP code to the container's web directory
+      - ./promo_codes.csv:/var/www/html/promo_codes.csv  # Mount the CSV file into the container
+
+  db:
+    image: postgres:latest
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: fitnation_user
+      POSTGRES_PASSWORD: securepassword
+      POSTGRES_DB: fitnation
+    networks:
+      - app-network
+    volumes:
+      - pg_data:/var/lib/postgresql/data  # Persistent data storage for PostgreSQL
+
+  load_balancer:
+    image: nginx:latest
+    container_name: nginx-load-balancer
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    depends_on:
+      - web
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf  # Load the custom Nginx configuration
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pg_data:  # Named volume for PostgreSQL data persistence
